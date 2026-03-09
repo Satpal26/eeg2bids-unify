@@ -12,19 +12,26 @@ from ..plugins.neuroscan import NeuroscanPlugin
 from ..plugins.openbci import OpenBCIPlugin
 from ..plugins.muse import MusePlugin
 from ..plugins.emotiv import EmotivPlugin
+from .harmonizer import EventHarmonizer
+from .config import load_config, AppConfig
 
 
 class EEGConverter:
     """
     Main converter class.
-    1. Auto-detects hardware from file
-    2. Loads correct plugin
-    3. Reads raw EEG
-    4. Extracts events
-    5. Writes BIDS output
+    1. Loads config (YAML or defaults)
+    2. Auto-detects hardware from file
+    3. Loads correct plugin
+    4. Reads raw EEG
+    5. Extracts events
+    6. Harmonizes events into unified format
+    7. Writes BIDS output
     """
 
-    def __init__(self):
+    def __init__(self, config_path: str = None):
+        # Load config
+        self.config = load_config(config_path)
+
         # All 5 hardware plugins registered
         self.plugins = [
             BrainProductsPlugin(),
@@ -33,6 +40,11 @@ class EEGConverter:
             MusePlugin(),
             EmotivPlugin(),
         ]
+
+        # EventHarmonizer uses event mapping from config
+        self.harmonizer = EventHarmonizer(
+            custom_mapping=self.config.event_mapping
+        )
 
     def detect_plugin(self, filepath: str):
         """Find which plugin can handle this file."""
@@ -47,7 +59,7 @@ class EEGConverter:
         bids_root: str,
         subject: str,
         session: str,
-        task: str,
+        task: str = None,
     ):
         """
         Full conversion pipeline.
@@ -55,10 +67,15 @@ class EEGConverter:
         bids_root — where to write the BIDS dataset
         subject   — e.g. "01"
         session   — e.g. "01"
-        task      — e.g. "ssvep"
+        task      — e.g. "ssvep" (falls back to config if not given)
         """
 
+        # Use task from config if not explicitly passed
+        if task is None:
+            task = self.config.recording.task
+
         print(f"[eeg2bids] Processing: {filepath}")
+        print(f"[eeg2bids] Subject: {subject} | Session: {session} | Task: {task}")
 
         # Step 1 — find the right plugin
         plugin = self.detect_plugin(filepath)
@@ -68,14 +85,18 @@ class EEGConverter:
         raw = plugin.read_raw(filepath)
         print(f"[eeg2bids] Loaded {len(raw.ch_names)} channels @ {raw.info['sfreq']} Hz")
 
-        # Step 3 — extract events
-        events = plugin.extract_events(filepath, raw)
-        print(f"[eeg2bids] Found {len(events)} events")
+        # Step 3 — extract raw events
+        raw_events = plugin.extract_events(filepath, raw)
+        print(f"[eeg2bids] Found {len(raw_events)} raw events")
 
-        # Step 4 — get hardware metadata
+        # Step 4 — harmonize events into unified format
+        harmonized = self.harmonizer.harmonize(raw_events)
+        print(f"[eeg2bids] Harmonized {len(harmonized)} events")
+
+        # Step 5 — get hardware metadata
         metadata = plugin.get_metadata(filepath)
 
-        # Step 5 — build BIDS path
+        # Step 6 — build BIDS path
         bids_path = mne_bids.BIDSPath(
             subject=subject,
             session=session,
@@ -84,13 +105,24 @@ class EEGConverter:
             datatype="eeg",
         )
 
-        # Step 6 — write BIDS
+        # Step 7 — write BIDS
         mne_bids.write_raw_bids(
             raw=raw,
             bids_path=bids_path,
-            overwrite=True,
-            verbose=False,
+            overwrite=self.config.output.overwrite,
+            verbose=self.config.output.verbose,
         )
+
+        # Step 8 — write harmonized events.tsv
+        events_path = (
+            Path(bids_root)
+            / f"sub-{subject}"
+            / f"ses-{session}"
+            / "eeg"
+            / f"sub-{subject}_ses-{session}_task-{task}_events.tsv"
+        )
+        events_path.parent.mkdir(parents=True, exist_ok=True)
+        self.harmonizer.to_bids_tsv(harmonized, str(events_path))
 
         print(f"[eeg2bids] BIDS output written to: {bids_root}")
         return bids_path

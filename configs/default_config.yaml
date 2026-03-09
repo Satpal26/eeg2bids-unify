@@ -1,0 +1,47 @@
+# default_config.yaml
+# YAML configuration for eeg2bids-unify
+# Users can copy and customize this for their own dataset
+
+# ── Dataset Info ──────────────────────────────────────────
+dataset:
+  name: "My EEG Dataset"
+  authors: ["Your Name"]
+  institution: "Your Institution"
+  ethics_approval: "IRB-XXXX"
+
+# ── Recording Info ────────────────────────────────────────
+recording:
+  task: "ssvep"
+  power_line_freq: 50.0      # 50 for Asia/Europe, 60 for USA
+  subject_prefix: "sub"
+  session_prefix: "ses"
+
+# ── Event Mapping ─────────────────────────────────────────
+# Map hardware-specific trigger codes → standard trial_type names
+# Add your own mappings here based on your experiment design
+event_mapping:
+  "1":  "stimulus_6hz"
+  "2":  "stimulus_8hz"
+  "3":  "stimulus_10hz"
+  "4":  "stimulus_12hz"
+  "5":  "stimulus_15hz"
+  "6":  "stimulus_20hz"
+  "S  1": "stimulus_6hz"
+  "S  2": "stimulus_8hz"
+  "S  3": "stimulus_10hz"
+  "S  4": "stimulus_12hz"
+  "99": "rest"
+  "0":  "rest"
+
+# ── Hardware Overrides ────────────────────────────────────
+# Override default hardware metadata if needed
+hardware:
+  sampling_rate: null        # null = auto-detect from file
+  channel_count: null        # null = auto-detect from file
+  reference_scheme: null     # null = use plugin default
+
+# ── Output Settings ───────────────────────────────────────
+output:
+  overwrite: true
+  validate_bids: true        # run BIDS validator after conversion
+  verbose: false
