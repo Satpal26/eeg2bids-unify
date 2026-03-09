@@ -12,3 +12,8 @@ dependencies = [
     "pyxdf>=1.17.3",
     "pyyaml>=6.0.3",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

@@ -16,6 +16,7 @@ from ..plugins.base import EventInfo
 
 # Standard SSVEP stimulus frequencies used in our lab
 SSVEP_FREQ_MAP = {
+    # By frequency value
     "6":  "stimulus_6hz",
     "7":  "stimulus_7hz",
     "8":  "stimulus_8hz",
@@ -23,6 +24,12 @@ SSVEP_FREQ_MAP = {
     "12": "stimulus_12hz",
     "15": "stimulus_15hz",
     "20": "stimulus_20hz",
+    # By trigger number (BrainProducts S1, S2 format)
+    "1": "stimulus_6hz",
+    "2": "stimulus_8hz",
+    "3": "stimulus_10hz",
+    "4": "stimulus_12hz",
+    "5": "stimulus_15hz",
 }
 
 
