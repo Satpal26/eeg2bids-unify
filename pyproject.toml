@@ -17,3 +17,9 @@ dependencies = [
 dev = [
     "pytest>=9.0.2",
 ]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[project.scripts]
+eeg2bids-unify = "eeg2bids_unify.cli:cli"

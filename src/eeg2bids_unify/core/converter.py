@@ -14,6 +14,8 @@ from ..plugins.muse import MusePlugin
 from ..plugins.emotiv import EmotivPlugin
 from .harmonizer import EventHarmonizer
 from .config import load_config, AppConfig
+from .validator import validate_bids
+from .dataset_description import generate_dataset_description
 
 
 class EEGConverter:
@@ -25,7 +27,9 @@ class EEGConverter:
     4. Reads raw EEG
     5. Extracts events
     6. Harmonizes events into unified format
-    7. Writes BIDS output
+    7. Generates dataset_description.json
+    8. Writes BIDS output
+    9. Validates BIDS output
     """
 
     def __init__(self, config_path: str = None):
@@ -96,7 +100,10 @@ class EEGConverter:
         # Step 5 — get hardware metadata
         metadata = plugin.get_metadata(filepath)
 
-        # Step 6 — build BIDS path
+        # Step 6 — generate dataset_description.json
+        generate_dataset_description(bids_root, self.config)
+
+        # Step 7 — build BIDS path
         bids_path = mne_bids.BIDSPath(
             subject=subject,
             session=session,
@@ -105,7 +112,7 @@ class EEGConverter:
             datatype="eeg",
         )
 
-        # Step 7 — write BIDS
+        # Step 8 — write BIDS
         mne_bids.write_raw_bids(
             raw=raw,
             bids_path=bids_path,
@@ -113,7 +120,7 @@ class EEGConverter:
             verbose=self.config.output.verbose,
         )
 
-        # Step 8 — write harmonized events.tsv
+        # Step 9 — write harmonized events.tsv
         events_path = (
             Path(bids_root)
             / f"sub-{subject}"
@@ -124,5 +131,9 @@ class EEGConverter:
         events_path.parent.mkdir(parents=True, exist_ok=True)
         self.harmonizer.to_bids_tsv(harmonized, str(events_path))
 
-        print(f"[eeg2bids] BIDS output written to: {bids_root}")
+        # Step 10 — validate BIDS output if enabled in config
+        if self.config.output.validate_bids:
+            validate_bids(bids_root)
+
+        print(f"[eeg2bids] Done! BIDS output written to: {bids_root}")
         return bids_path
