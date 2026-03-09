@@ -111,6 +111,34 @@ sequenceDiagram
 | Muse 2 | .csv / .xdf | 🔄 Coming Soon |
 | Emotiv EPOC | .edf / .csv | 🔄 Coming Soon |
 
+## Test Results
+```
+19 passed in 3.92s
+```
+
+## Project Structure
+```
+src/eeg2bids_unify/
+    plugins/
+        base.py            # abstract plugin interface
+        brainproducts.py   # BrainProducts ActiChamp
+        neuroscan.py       # Neuroscan NuAmps
+        openbci.py         # OpenBCI Cyton
+        muse.py            # InteraXon Muse 2
+        emotiv.py          # Emotiv EPOC+
+    core/
+        converter.py       # main conversion engine
+        harmonizer.py      # event normalization
+        config.py          # YAML config loader
+        validator.py       # BIDS validation
+    cli.py                 # command line interface
+configs/
+    default_config.yaml    # default configuration
+tests/
+    test_plugins.py        # 19 tests
+```
+
+
 ## Built With
 - Python 3.11
 - MNE-Python 1.11
